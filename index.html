@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; user-select: none;
+    font-family: "Segoe Print", "Comic Sans MS", cursive; }
+  #scene, #hole, #bubble, .portal { position: absolute; pointer-events: none; }
+  #scene { left: 0; overflow: visible; z-index: 1; }
+  .portal { overflow: visible; z-index: 2; }
+  #hole { overflow: hidden; z-index: 3; }
+  #buddy { position: absolute; overflow: visible; transition: filter .6s; }
+  #buddy.drawing { filter: saturate(.75) opacity(.92); }
+
+  /* Rig pivots, in buddy viewBox units (0 0 200 260). */
+  #rig { transform-origin: 100px 258px; }
+  #armL { transform-origin: 74px 160px; }
+  #armR { transform-origin: 126px 160px; }
+  #legL { transform-origin: 85px 208px; }
+  #legR { transform-origin: 115px 208px; }
+  #lids { transform-origin: 100px 44px; transform: scaleY(0); }
+
+  #bubble { display: none; z-index: 5; width: 300px; padding: 28px 30px 24px; box-sizing: border-box;
+    color: #1b2f6b; font-size: 17px; line-height: 1.4; text-align: center; transform-origin: 100% 100%; }
+  #bubble::before { content: ""; position: absolute; inset: 0; z-index: -1; background: #fffdf6;
+    border: 4px solid #1b2f6b; border-radius: 52% 48% 55% 45% / 50% 55% 45% 50%; filter: url(#crayon); }
+  #bubble::after { content: ""; position: absolute; right: -26px; bottom: 4px; width: 20px; height: 16px;
+    background: #fffdf6; border: 4px solid #1b2f6b; border-radius: 50%; filter: url(#crayon); }
+  #bubble button { pointer-events: auto; margin-top: 14px; font: inherit; font-weight: bold; color: #fff;
+    background: #2f86d1; border: 3px solid #1b2f6b; border-radius: 14px 18px 12px 16px; padding: 8px 18px;
+    cursor: pointer; transition: transform .15s; }
+  #bubble button:hover { background: #3b97e6; transform: rotate(-2deg) scale(1.06); }
+</style>
+</head>
+<body>
+
+<!-- Shared crayon look: wobbly lines (boil = seed swapped by renderer.js) + waxy grain. -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <filter id="crayon" x="-15%" y="-15%" width="130%" height="130%">
+      <feTurbulence id="boil" type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="0" result="warp"/>
+      <feDisplacementMap in="SourceGraphic" in2="warp" scale="4" xChannelSelector="R" yChannelSelector="G" result="wobble"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" result="grain"/>
+      <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -1.2 0 0 0 1.4" result="mask"/>
+      <feComposite in="wobble" in2="mask" operator="in"/>
+    </filter>
+    <pattern id="sky" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(-25)">
+      <path d="M0 6 H12" stroke="#9cc8f0" stroke-width="4" opacity=".55"/>
+    </pattern>
+    <radialGradient id="void">
+      <stop offset="0" stop-color="#140a2e"/>
+      <stop offset=".7" stop-color="#3b1f78"/>
+      <stop offset="1" stop-color="#6a4bc4"/>
+    </radialGradient>
+  </defs>
+</svg>
+
+<svg id="scene"></svg>
+
+<div id="hole">
+  <!--
+    The buddy, modeled on assets/buddy.jpg. Every part is its own <g> so renderer.js can animate it.
+    To use hand-drawn sprites later: replace a part's contents with
+    <image href="frames/armL.png" x=".." y=".." width=".." height=".."/>, keeping the id and pivot,
+    or swap the whole #bob group per frame.
+  -->
+  <svg id="buddy" viewBox="0 0 200 260">
+    <g id="rig" filter="url(#crayon)" stroke="#1b2f6b" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <g id="bob">
+        <g id="legL"><rect x="78" y="206" width="14" height="32" fill="#f4f7fb"/><ellipse cx="74" cy="242" rx="30" ry="15" fill="#2f86d1"/></g>
+        <g id="legR"><rect x="108" y="206" width="14" height="32" fill="#f4f7fb"/><ellipse cx="126" cy="242" rx="30" ry="15" fill="#2f86d1"/></g>
+        <path d="M72 148 L128 148 L133 198 L67 198 Z" fill="#e3edf8"/>
+        <path d="M67 192 L133 192 L135 218 L104 218 L100 206 L96 218 L65 218 Z" fill="#2f86d1"/>
+        <g id="armL">
+          <path d="M74 160 L40 170" stroke-width="13"/>
+          <path d="M74 160 L40 170" stroke="#f4f7fb" stroke-width="5"/>
+          <path d="M46 158 L34 146 L34 160 L18 156 L28 168 L12 176 L30 178 L26 194 L40 184 L50 186 Z" fill="#2f86d1"/>
+        </g>
+        <g id="armR">
+          <path d="M126 160 L160 170" stroke-width="13"/>
+          <path d="M126 160 L160 170" stroke="#f4f7fb" stroke-width="5"/>
+          <path d="M154 158 L166 146 L166 160 L182 156 L172 168 L188 176 L170 178 L174 194 L160 184 L150 186 Z" fill="#2f86d1"/>
+          <rect id="chalk" x="170" y="138" width="8" height="24" rx="3" fill="#fff" stroke-width="3" opacity="0" transform="rotate(20 174 150)"/>
+        </g>
+        <path id="scarf" d="M60 138 Q100 160 140 138 L144 152 Q100 176 56 152 Z M64 146 L26 122 L40 142 L14 144 L36 154 L22 170 L68 156 Z" fill="#2f86d1"/>
+        <g id="head">
+          <circle cx="100" cy="78" r="64" fill="#2f86d1"/>
+          <ellipse cx="74" cy="66" rx="22" ry="18" fill="#fff"/>
+          <ellipse cx="128" cy="64" rx="20" ry="17" fill="#fff"/>
+          <g id="lids" stroke="none" fill="#2f86d1">
+            <ellipse cx="74" cy="66" rx="26" ry="22"/><ellipse cx="128" cy="64" rx="24" ry="21"/>
+          </g>
+          <path d="M48 96 Q100 110 152 96 Q142 140 100 142 Q58 140 48 96 Z" fill="#fff"/>
+          <path d="M70 102 L72 126 M86 106 L87 134 M102 108 L102 138 M118 106 L117 134 M134 102 L131 124" stroke-width="2.5" fill="none"/>
+        </g>
+      </g>
+    </g>
+  </svg>
+</div>
+
+<div id="bubble">
+  You've been sitting for an hour straight.<br>
+  Time to stand up, stretch, or get off screen for 5&ndash;10 minutes.
+  <br><button id="thanks">Alright, thanks bud!</button>
+</div>
+
+<script src="renderer.js"></script>
+</body>
+</html>

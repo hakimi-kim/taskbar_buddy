@@ -1,0 +1,13 @@
+{
+  "name": "taskbar-buddy",
+  "version": "1.0.0",
+  "description": "Crayon desktop buddy that lives on your taskbar and reminds you to take breaks",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test.js"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0"
+  }
+}
